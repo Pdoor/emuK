@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$ports = "8787,8788"
+$ports = "8787-8788"
 $ruleName = "emuK keyboard companion"
 
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).
