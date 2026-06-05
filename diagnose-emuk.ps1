@@ -17,7 +17,7 @@ Get-NetConnectionProfile |
 
 Write-Host ""
 Write-Host "Porte in ascolto:"
-Get-NetTCPConnection -LocalPort 8787,8788 -State Listen -ErrorAction SilentlyContinue |
+Get-NetTCPConnection -LocalPort 5000,8787,8788 -State Listen -ErrorAction SilentlyContinue |
     Select-Object LocalAddress,LocalPort,OwningProcess |
     Format-Table -AutoSize
 
@@ -60,7 +60,8 @@ $wifiIp = Get-NetIPAddress -AddressFamily IPv4 |
 if ($wifiIp) {
     Write-Host "http://$wifiIp`:8788"
     Write-Host "https://$wifiIp`:8787"
+    Write-Host "http://$wifiIp`:5000"
     Write-Host ""
     Write-Host "Test diagnostico diretto dal telefono:"
-    Write-Host "http://$wifiIp`:8788/api/info"
+    Write-Host "http://$wifiIp`:5000/api/info"
 }

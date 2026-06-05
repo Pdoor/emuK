@@ -1,6 +1,5 @@
 $ErrorActionPreference = "Stop"
 
-$ports = "8787-8788"
 $ruleName = "emuK keyboard companion"
 
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).
@@ -22,8 +21,16 @@ New-NetFirewallRule `
     -Direction Inbound `
     -Action Allow `
     -Protocol TCP `
-    -LocalPort $ports `
+    -LocalPort 8787-8788 `
     -Profile Any | Out-Null
 
-Write-Host "Firewall aperto per TCP $ports su tutti i profili."
-Write-Host "Riavvia start-emuk.bat e prova dal tablet l'indirizzo HTTP 8788."
+New-NetFirewallRule `
+    -DisplayName "$ruleName TCP 5000" `
+    -Direction Inbound `
+    -Action Allow `
+    -Protocol TCP `
+    -LocalPort 5000 `
+    -Profile Any | Out-Null
+
+Write-Host "Firewall aperto per TCP 8787-8788 e 5000 su tutti i profili."
+Write-Host "Riavvia start-http-5000.bat e prova dal tablet l'indirizzo HTTP 5000."

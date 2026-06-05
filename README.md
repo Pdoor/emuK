@@ -62,6 +62,12 @@ python companion.py
 
 Quando HTTPS e attivo, emuK avvia anche un fallback HTTP sulla porta successiva, di solito `8788`.
 
+Per un test LAN ancora piu semplice puoi usare `start-http-5000.bat`, poi aprire:
+
+```text
+http://IP-DEL-PC:5000/api/info
+```
+
 ## Sicurezza
 
 Usa emuK solo su reti fidate. Chi riesce ad aprire la pagina dal network puo inviare input tastiera al PC mentre il companion e in esecuzione.
