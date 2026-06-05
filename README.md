@@ -68,6 +68,16 @@ Per un test LAN ancora piu semplice puoi usare `start-http-5000.bat`, poi aprire
 http://IP-DEL-PC:5000/api/info
 ```
 
+## Tunnel se la LAN blocca il telefono
+
+Se telefono/tablet non raggiungono l'IP locale del PC, usa:
+
+```text
+start-tunnel.bat
+```
+
+Il comando scarica `cloudflared`, avvia emuK su `127.0.0.1:5000` e stampa un URL pubblico temporaneo `https://...trycloudflare.com` da aprire sul telefono.
+
 ## Sicurezza
 
 Usa emuK solo su reti fidate. Chi riesce ad aprire la pagina dal network puo inviare input tastiera al PC mentre il companion e in esecuzione.
