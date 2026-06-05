@@ -40,10 +40,16 @@ python companion.py
 
 1. Controlla che Windows e tablet siano sulla stessa rete Wi-Fi.
 2. Apri esattamente l'indirizzo stampato dal companion, con `https://`.
-3. Se la pagina non si apre, consenti Python nel Firewall Windows sulle reti private.
+3. Se la pagina va in timeout, esegui `open-firewall.ps1` come amministratore.
 4. Se il browser mostra un avviso certificato, scegli `Avanzate` e continua.
 5. Se la pagina si apre ma i tasti non scrivono, clicca prima dentro una finestra di Windows in cui vuoi digitare, poi premi `Test` dal tablet.
 6. Se WebSocket fallisce, l'app usa automaticamente il fallback HTTP.
+
+Per vedere IP, porte e stato firewall:
+
+```powershell
+.\diagnose-emuk.ps1
+```
 
 ## HTTP, se serve
 
