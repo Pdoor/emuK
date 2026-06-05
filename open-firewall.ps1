@@ -23,7 +23,7 @@ New-NetFirewallRule `
     -Action Allow `
     -Protocol TCP `
     -LocalPort $ports `
-    -Profile Private,Domain | Out-Null
+    -Profile Any | Out-Null
 
-Write-Host "Firewall aperto per TCP $ports sui profili Private/Domain."
+Write-Host "Firewall aperto per TCP $ports su tutti i profili."
 Write-Host "Riavvia start-emuk.bat e prova dal tablet l'indirizzo HTTP 8788."

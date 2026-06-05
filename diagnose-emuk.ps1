@@ -46,6 +46,13 @@ Get-NetFirewallRule -DisplayName "emuK*" -ErrorAction SilentlyContinue |
     Format-Table -AutoSize
 
 Write-Host ""
+Write-Host "Regole firewall emuK - porte:"
+Get-NetFirewallRule -DisplayName "emuK*" -ErrorAction SilentlyContinue |
+    Get-NetFirewallPortFilter |
+    Select-Object Protocol,LocalPort |
+    Format-Table -AutoSize
+
+Write-Host ""
 Write-Host "Dal tablet prova prima l'indirizzo HTTP con l'IP Wi-Fi, per esempio:"
 $wifiIp = Get-NetIPAddress -AddressFamily IPv4 |
     Where-Object { $_.InterfaceAlias -like "*Wi-Fi*" -and $_.IPAddress -notlike "169.254.*" } |
@@ -53,4 +60,7 @@ $wifiIp = Get-NetIPAddress -AddressFamily IPv4 |
 if ($wifiIp) {
     Write-Host "http://$wifiIp`:8788"
     Write-Host "https://$wifiIp`:8787"
+    Write-Host ""
+    Write-Host "Test diagnostico diretto dal telefono:"
+    Write-Host "http://$wifiIp`:8788/api/info"
 }
