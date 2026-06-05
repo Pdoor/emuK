@@ -8,7 +8,7 @@ Nota: una web app non puo presentarsi a Windows come una vera tastiera Bluetooth
 
 1. Su Windows, apri questa cartella.
 2. Avvia `start-emuk.bat`.
-3. Sul tablet Android, apri l'indirizzo mostrato nel terminale, per esempio `https://192.168.1.20:8787`.
+3. Sul tablet Android, apri l'indirizzo HTTPS mostrato nel terminale, per esempio `https://192.168.1.20:8787`.
 4. Tocca i tasti o scrivi nel campo di testo e premi `Invia testo`.
 
 Windows e tablet devono essere sulla stessa rete Wi-Fi.
@@ -53,6 +53,8 @@ HTTPS e attivo di default. Per tornare temporaneamente a HTTP:
 $env:EMUK_HTTPS = "0"
 python companion.py
 ```
+
+Quando HTTPS e attivo, emuK avvia anche un fallback HTTP sulla porta successiva, di solito `8788`.
 
 ## Sicurezza
 

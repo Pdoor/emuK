@@ -21,11 +21,13 @@ from ctypes import wintypes
 APP_NAME = "emuK"
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("EMUK_PORT", "8787"))
+HTTP_FALLBACK_PORT = int(os.environ.get("EMUK_HTTP_PORT", str(PORT + 1)))
 ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
 CERT_FILE = ROOT / "certs" / "emuk-cert.pem"
 KEY_FILE = ROOT / "certs" / "emuk-key.pem"
 USE_HTTPS = os.environ.get("EMUK_HTTPS", "1") != "0"
+ENABLE_HTTP_FALLBACK = os.environ.get("EMUK_HTTP_FALLBACK", "1") != "0"
 
 
 INPUT_KEYBOARD = 1
@@ -223,13 +225,14 @@ class EmuKHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split("?", 1)[0]
         if clean_path == "/api/info":
             actual_port = self.server.server_address[1]
-            ws_scheme = "wss" if USE_HTTPS else "ws"
+            is_https = bool(getattr(self.server, "emuk_https", USE_HTTPS))
+            ws_scheme = "wss" if is_https else "ws"
             self._json(
                 {
                     "name": APP_NAME,
                     "host": local_ip(),
                     "port": actual_port,
-                    "https": USE_HTTPS,
+                    "https": is_https,
                     "ws": f"{ws_scheme}://{local_ip()}:{actual_port}/ws",
                 }
             )
@@ -330,21 +333,20 @@ class ThreadingHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     daemon_threads = True
 
 
-def main() -> None:
-    server = None
-    selected_port = PORT
-    for candidate in range(PORT, PORT + 20):
+def build_server(start_port: int, use_https: bool) -> tuple[ThreadingHTTPServer, int, str]:
+    selected_port = start_port
+    for candidate in range(start_port, start_port + 20):
         try:
             server = ThreadingHTTPServer((HOST, candidate), EmuKHandler)
             selected_port = candidate
             break
         except OSError:
             continue
-    if server is None:
-        raise OSError(f"Nessuna porta libera trovata tra {PORT} e {PORT + 19}")
+    else:
+        raise OSError(f"Nessuna porta libera trovata tra {start_port} e {start_port + 19}")
 
     scheme = "http"
-    if USE_HTTPS:
+    if use_https:
         if not CERT_FILE.exists() or not KEY_FILE.exists():
             raise FileNotFoundError(
                 "Certificato HTTPS mancante. Esegui make-cert.ps1 o usa start-emuk.bat."
@@ -353,20 +355,45 @@ def main() -> None:
         context.load_cert_chain(certfile=str(CERT_FILE), keyfile=str(KEY_FILE))
         server.socket = context.wrap_socket(server.socket, server_side=True)
         scheme = "https"
+    server.emuk_https = use_https
+    return server, selected_port, scheme
 
-    with server:
-        ip = local_ip()
-        print(f"{APP_NAME} companion avviato")
-        print(f"Apri dal tablet: {scheme}://{ip}:{selected_port}")
-        if scheme == "https":
-            print("Se il browser avvisa sul certificato, scegli Avanzate/continua.")
-        print("Premi Ctrl+C per uscire.")
-        threading.Thread(target=server.serve_forever, daemon=True).start()
+
+def main() -> None:
+    servers: list[tuple[ThreadingHTTPServer, int, str]] = []
+    servers.append(build_server(PORT, USE_HTTPS))
+
+    if USE_HTTPS and ENABLE_HTTP_FALLBACK:
         try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nChiusura...")
+            servers.append(build_server(HTTP_FALLBACK_PORT, False))
+        except OSError as exc:
+            print(f"Fallback HTTP non avviato: {exc}", flush=True)
+
+    ip = local_ip()
+    print(f"{APP_NAME} companion avviato", flush=True)
+    for _, selected_port, scheme in servers:
+        target = f"{scheme}://{ip}:{selected_port}"
+        local = f"{scheme}://127.0.0.1:{selected_port}"
+        print(f"Apri dal tablet: {target}", flush=True)
+        print(f"Apri su questo PC: {local}", flush=True)
+    if USE_HTTPS:
+        print("Se il browser avvisa sul certificato, scegli Avanzate/continua.", flush=True)
+        if ENABLE_HTTP_FALLBACK:
+            print("Se HTTPS non si apre, usa temporaneamente l'indirizzo HTTP stampato sopra.", flush=True)
+    print("Premi Ctrl+C per uscire.", flush=True)
+
+    for server, _, _ in servers:
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nChiusura...", flush=True)
+    finally:
+        for server, _, _ in servers:
+            server.shutdown()
+            server.server_close()
 
 
 if __name__ == "__main__":
