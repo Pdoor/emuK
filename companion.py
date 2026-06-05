@@ -36,6 +36,7 @@ KEYEVENTF_KEYUP = 0x0002
 KEYEVENTF_UNICODE = 0x0004
 KEYEVENTF_SCANCODE = 0x0008
 MAPVK_VK_TO_VSC = 0
+ULONG_PTR = ctypes.c_ulonglong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_ulong
 
 
 class KEYBDINPUT(ctypes.Structure):
@@ -44,12 +45,36 @@ class KEYBDINPUT(ctypes.Structure):
         ("wScan", wintypes.WORD),
         ("dwFlags", wintypes.DWORD),
         ("time", wintypes.DWORD),
-        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+        ("dwExtraInfo", ULONG_PTR),
+    ]
+
+
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", wintypes.LONG),
+        ("dy", wintypes.LONG),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ULONG_PTR),
+    ]
+
+
+class HARDWAREINPUT(ctypes.Structure):
+    _fields_ = [
+        ("uMsg", wintypes.DWORD),
+        ("wParamL", wintypes.WORD),
+        ("wParamH", wintypes.WORD),
     ]
 
 
 class INPUT_UNION(ctypes.Union):
-    _fields_ = [("ki", KEYBDINPUT)]
+    _fields_ = [
+        ("mi", MOUSEINPUT),
+        ("ki", KEYBDINPUT),
+        ("hi", HARDWAREINPUT),
+    ]
+
 
 
 class INPUT(ctypes.Structure):
@@ -58,6 +83,10 @@ class INPUT(ctypes.Structure):
 
 SendInput = ctypes.windll.user32.SendInput
 MapVirtualKeyW = ctypes.windll.user32.MapVirtualKeyW
+SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int)
+SendInput.restype = wintypes.UINT
+MapVirtualKeyW.argtypes = (wintypes.UINT, wintypes.UINT)
+MapVirtualKeyW.restype = wintypes.UINT
 
 
 VK = {
@@ -117,7 +146,7 @@ PUNCTUATION = {
 def _input(vk: int = 0, scan: int = 0, flags: int = 0) -> INPUT:
     return INPUT(
         type=INPUT_KEYBOARD,
-        union=INPUT_UNION(ki=KEYBDINPUT(vk, scan, flags, 0, None)),
+        union=INPUT_UNION(ki=KEYBDINPUT(vk, scan, flags, 0, 0)),
     )
 
 

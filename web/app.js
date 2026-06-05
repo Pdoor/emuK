@@ -70,7 +70,16 @@ async function sendHttp(payload) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    let result = {};
+    try {
+      result = text ? JSON.parse(text) : {};
+    } catch {
+      result = { message: text.slice(0, 120) };
+    }
+    if (!response.ok || result.type === "error") {
+      throw new Error(result.message || `HTTP ${response.status}`);
+    }
     lastTransport = "http";
     setStatus("Inviato", "online", "Metodo: HTTP fallback.");
   } catch (error) {
