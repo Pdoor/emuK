@@ -8,6 +8,7 @@ import socket
 import socketserver
 import struct
 import ssl
+import sys
 import threading
 import time
 from http import HTTPStatus
@@ -331,6 +332,14 @@ class EmuKHandler(SimpleHTTPRequestHandler):
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
     daemon_threads = True
+    emuk_https = False
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        _, exc, _ = sys.exc_info()
+        if isinstance(exc, (ConnectionResetError, ConnectionAbortedError, ssl.SSLError)):
+            print(f"Connessione chiusa dal client: {client_address}", flush=True)
+            return
+        super().handle_error(request, client_address)
 
 
 def build_server(start_port: int, use_https: bool) -> tuple[ThreadingHTTPServer, int, str]:
