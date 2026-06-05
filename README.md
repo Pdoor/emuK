@@ -8,7 +8,7 @@ Nota: una web app non puo presentarsi a Windows come una vera tastiera Bluetooth
 
 1. Su Windows, apri questa cartella.
 2. Avvia `start-emuk.bat`.
-3. Sul tablet Android, apri l'indirizzo mostrato nel terminale, per esempio `http://192.168.1.20:8787`.
+3. Sul tablet Android, apri l'indirizzo mostrato nel terminale, per esempio `https://192.168.1.20:8787`.
 4. Tocca i tasti o scrivi nel campo di testo e premi `Invia testo`.
 
 Windows e tablet devono essere sulla stessa rete Wi-Fi.
@@ -18,6 +18,7 @@ Windows e tablet devono essere sulla stessa rete Wi-Fi.
 - Windows.
 - Python 3 installato e disponibile come `py` o `python`.
 - Firewall Windows configurato per consentire Python sulle reti private, se richiesto.
+- La prima apertura HTTPS richiede di accettare il certificato locale self-signed.
 
 ## Funzioni
 
@@ -38,10 +39,20 @@ python companion.py
 ## Se dal tablet non funziona
 
 1. Controlla che Windows e tablet siano sulla stessa rete Wi-Fi.
-2. Apri esattamente l'indirizzo stampato dal companion, con `http://` e non `https://`.
+2. Apri esattamente l'indirizzo stampato dal companion, con `https://`.
 3. Se la pagina non si apre, consenti Python nel Firewall Windows sulle reti private.
-4. Se la pagina si apre ma i tasti non scrivono, clicca prima dentro una finestra di Windows in cui vuoi digitare, poi premi `Test` dal tablet.
-5. Se WebSocket fallisce, l'app usa automaticamente il fallback HTTP.
+4. Se il browser mostra un avviso certificato, scegli `Avanzate` e continua.
+5. Se la pagina si apre ma i tasti non scrivono, clicca prima dentro una finestra di Windows in cui vuoi digitare, poi premi `Test` dal tablet.
+6. Se WebSocket fallisce, l'app usa automaticamente il fallback HTTP.
+
+## HTTP, se serve
+
+HTTPS e attivo di default. Per tornare temporaneamente a HTTP:
+
+```powershell
+$env:EMUK_HTTPS = "0"
+python companion.py
+```
 
 ## Sicurezza
 

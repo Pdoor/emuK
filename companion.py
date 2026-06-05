@@ -7,6 +7,7 @@ import os
 import socket
 import socketserver
 import struct
+import ssl
 import threading
 import time
 from http import HTTPStatus
@@ -22,6 +23,9 @@ HOST = "0.0.0.0"
 PORT = int(os.environ.get("EMUK_PORT", "8787"))
 ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
+CERT_FILE = ROOT / "certs" / "emuk-cert.pem"
+KEY_FILE = ROOT / "certs" / "emuk-key.pem"
+USE_HTTPS = os.environ.get("EMUK_HTTPS", "1") != "0"
 
 
 INPUT_KEYBOARD = 1
@@ -219,12 +223,14 @@ class EmuKHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split("?", 1)[0]
         if clean_path == "/api/info":
             actual_port = self.server.server_address[1]
+            ws_scheme = "wss" if USE_HTTPS else "ws"
             self._json(
                 {
                     "name": APP_NAME,
                     "host": local_ip(),
                     "port": actual_port,
-                    "ws": f"ws://{local_ip()}:{actual_port}/ws",
+                    "https": USE_HTTPS,
+                    "ws": f"{ws_scheme}://{local_ip()}:{actual_port}/ws",
                 }
             )
             return
@@ -337,10 +343,23 @@ def main() -> None:
     if server is None:
         raise OSError(f"Nessuna porta libera trovata tra {PORT} e {PORT + 19}")
 
+    scheme = "http"
+    if USE_HTTPS:
+        if not CERT_FILE.exists() or not KEY_FILE.exists():
+            raise FileNotFoundError(
+                "Certificato HTTPS mancante. Esegui make-cert.ps1 o usa start-emuk.bat."
+            )
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(certfile=str(CERT_FILE), keyfile=str(KEY_FILE))
+        server.socket = context.wrap_socket(server.socket, server_side=True)
+        scheme = "https"
+
     with server:
         ip = local_ip()
         print(f"{APP_NAME} companion avviato")
-        print(f"Apri dal tablet: http://{ip}:{selected_port}")
+        print(f"Apri dal tablet: {scheme}://{ip}:{selected_port}")
+        if scheme == "https":
+            print("Se il browser avvisa sul certificato, scegli Avanzate/continua.")
         print("Premi Ctrl+C per uscire.")
         threading.Thread(target=server.serve_forever, daemon=True).start()
         try:
