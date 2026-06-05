@@ -78,6 +78,8 @@ start-tunnel.bat
 
 Il comando scarica `cloudflared`, avvia emuK su `127.0.0.1:5000` e stampa un URL pubblico temporaneo `https://...trycloudflare.com` da aprire sul telefono.
 
+La web app usa HTTP come trasporto predefinito per massima compatibilita con browser e tunnel. Per forzare WebSocket, aggiungi `?ws=1` all'URL.
+
 ## Sicurezza
 
 Usa emuK solo su reti fidate. Chi riesce ad aprire la pagina dal network puo inviare input tastiera al PC mentre il companion e in esecuzione.

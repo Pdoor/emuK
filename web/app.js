@@ -5,7 +5,8 @@ const textInput = document.querySelector("#textInput");
 
 let socket;
 let reconnectTimer;
-let lastTransport = "none";
+let lastTransport = "http";
+const useWebSocket = new URLSearchParams(location.search).get("ws") === "1";
 
 function setStatus(text, state, detail) {
   statusEl.textContent = text;
@@ -20,7 +21,12 @@ function wsUrl() {
 
 function connect() {
   clearTimeout(reconnectTimer);
-  setStatus("Connessione...", "connecting", `Apro ${wsUrl()}`);
+  if (!useWebSocket) {
+    checkHttp();
+    return;
+  }
+
+  setStatus("Connessione WebSocket...", "connecting", `Apro ${wsUrl()}`);
 
   socket = new WebSocket(wsUrl());
   socket.addEventListener("open", () => {
@@ -35,11 +41,26 @@ function connect() {
 }
 
 async function send(payload) {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
+  if (!useWebSocket || !socket || socket.readyState !== WebSocket.OPEN) {
     return sendHttp(payload);
   }
   socket.send(JSON.stringify(payload));
   setStatus("Inviato", "online", `Metodo: ${lastTransport}`);
+}
+
+async function checkHttp() {
+  try {
+    const response = await fetch("/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "ping" }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    lastTransport = "http";
+    setStatus("Connesso a Windows", "online", "Metodo: HTTP compatibile.");
+  } catch (error) {
+    setStatus("HTTP non disponibile", "offline", String(error.message || error));
+  }
 }
 
 async function sendHttp(payload) {
