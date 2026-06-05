@@ -233,13 +233,28 @@ class EmuKHandler(SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+    def do_POST(self) -> None:
+        clean_path = self.path.split("?", 1)[0]
+        if clean_path != "/api/send":
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length)
+            message = json.loads(raw.decode("utf-8"))
+            response = handle_message(message)
+            self._json(response)
+        except Exception as exc:
+            self._json({"type": "error", "message": str(exc)}, HTTPStatus.BAD_REQUEST)
+
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
-    def _json(self, payload: dict[str, Any]) -> None:
+    def _json(self, payload: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload).encode("utf-8")
-        self.send_response(HTTPStatus.OK)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()

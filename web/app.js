@@ -1,13 +1,16 @@
 const statusEl = document.querySelector("#status");
+const detailEl = document.querySelector("#detail");
 const reconnectButton = document.querySelector("#reconnect");
 const textInput = document.querySelector("#textInput");
 
 let socket;
 let reconnectTimer;
+let lastTransport = "none";
 
-function setStatus(text, state) {
+function setStatus(text, state, detail) {
   statusEl.textContent = text;
   document.body.dataset.state = state;
+  if (detail) detailEl.textContent = detail;
 }
 
 function wsUrl() {
@@ -17,23 +20,41 @@ function wsUrl() {
 
 function connect() {
   clearTimeout(reconnectTimer);
-  setStatus("Connessione...", "connecting");
+  setStatus("Connessione...", "connecting", `Apro ${wsUrl()}`);
 
   socket = new WebSocket(wsUrl());
-  socket.addEventListener("open", () => setStatus("Connesso a Windows", "online"));
+  socket.addEventListener("open", () => {
+    lastTransport = "websocket";
+    setStatus("Connesso a Windows", "online", "Canale realtime attivo.");
+  });
   socket.addEventListener("close", () => {
-    setStatus("Disconnesso, ritento...", "offline");
+    setStatus("WebSocket non disponibile", "offline", "Uso il fallback HTTP sui tocchi.");
     reconnectTimer = setTimeout(connect, 1200);
   });
-  socket.addEventListener("error", () => setStatus("Errore di connessione", "offline"));
+  socket.addEventListener("error", () => setStatus("Errore WebSocket", "offline", "Se la pagina e aperta, provo comunque via HTTP."));
 }
 
-function send(payload) {
+async function send(payload) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    setStatus("Non connesso", "offline");
-    return;
+    return sendHttp(payload);
   }
   socket.send(JSON.stringify(payload));
+  setStatus("Inviato", "online", `Metodo: ${lastTransport}`);
+}
+
+async function sendHttp(payload) {
+  try {
+    const response = await fetch("/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    lastTransport = "http";
+    setStatus("Inviato", "online", "Metodo: HTTP fallback.");
+  } catch (error) {
+    setStatus("Invio fallito", "offline", String(error.message || error));
+  }
 }
 
 function pulse(button) {
@@ -60,6 +81,9 @@ document.addEventListener("click", (event) => {
     send({ type: "text", text: textInput.value });
     textInput.value = "";
     textInput.focus();
+  }
+  if (button.hasAttribute("data-test")) {
+    send({ type: "text", text: "emuK test" });
   }
 });
 

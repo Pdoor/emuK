@@ -67,6 +67,12 @@ h1 {
   font-size: 14px;
 }
 
+#detail {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 body[data-state="online"] #status {
   color: var(--ok);
 }
