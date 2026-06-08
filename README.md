@@ -11,7 +11,7 @@ Nota: una web app non puo presentarsi a Windows come una vera tastiera Bluetooth
 Usa il tunnel se vuoi evitare problemi di firewall, router, isolamento Wi-Fi o certificati locali.
 
 ```powershell
-cd C:\Users\gmeluzzi\emuk
+cd C:\path\to\emuk
 .\start-smart-tunnel.bat
 ```
 
