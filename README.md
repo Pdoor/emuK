@@ -1,85 +1,127 @@
 # emuK
 
-emuK trasforma un tablet Android in una tastiera remota per Windows tramite rete locale.
+emuK trasforma un tablet o smartphone in una tastiera remota per Windows.
 
-Nota: una web app non puo presentarsi a Windows come una vera tastiera Bluetooth HID. emuK usa invece un companion Windows che riceve i comandi dalla web app e li invia al sistema operativo come input tastiera.
+La web app gira sul telefono/tablet, mentre un companion Python su Windows riceve i comandi e li invia al sistema operativo come input tastiera.
 
-## Avvio rapido
+Nota: una web app non puo presentarsi a Windows come una vera tastiera Bluetooth HID. emuK emula l'effetto pratico tramite rete/tunnel e input Windows.
 
-1. Su Windows, apri questa cartella.
-2. Avvia `start-emuk.bat`.
-3. Sul tablet Android, apri l'indirizzo HTTPS mostrato nel terminale, per esempio `https://192.168.1.20:8787`.
-4. Tocca i tasti o scrivi nel campo di testo e premi `Invia testo`.
+## Avvio consigliato
 
-Windows e tablet devono essere sulla stessa rete Wi-Fi.
-
-## Requisiti
-
-- Windows.
-- Python 3 installato e disponibile come `py` o `python`.
-- Firewall Windows configurato per consentire Python sulle reti private, se richiesto.
-- La prima apertura HTTPS richiede di accettare il certificato locale self-signed.
-
-## Funzioni
-
-- Tastiera touch con lettere, numeri, funzione, frecce e tasti speciali.
-- Invio testo libero.
-- Scorciatoie rapide: copia, incolla, taglia, annulla, seleziona tutto, mostra desktop, task manager.
-- Nessuna dipendenza Python esterna.
-
-## Porta
-
-La porta predefinita e `8787`. Se e occupata, emuK prova automaticamente le porte successive. Per cambiarla:
+Usa il tunnel se vuoi evitare problemi di firewall, router, isolamento Wi-Fi o certificati locali.
 
 ```powershell
-$env:EMUK_PORT = "9000"
-python companion.py
+cd C:\Users\gmeluzzi\emuk
+.\start-tunnel.bat
 ```
 
-## Se dal tablet non funziona
+Il comando:
 
-1. Controlla che Windows e tablet siano sulla stessa rete Wi-Fi.
-2. Apri esattamente l'indirizzo stampato dal companion, con `https://`.
-3. Se la pagina va in timeout, esegui `open-firewall.ps1` come amministratore.
-4. Se il browser mostra un avviso certificato, scegli `Avanzate` e continua.
-5. Se la pagina si apre ma i tasti non scrivono, clicca prima dentro una finestra di Windows in cui vuoi digitare, poi premi `Test` dal tablet.
-6. Se WebSocket fallisce, l'app usa automaticamente il fallback HTTP.
+- scarica `cloudflared` al primo avvio;
+- avvia emuK localmente su `127.0.0.1:5000`;
+- stampa un URL temporaneo `https://...trycloudflare.com`.
 
-Per vedere IP, porte e stato firewall:
+Apri quell'URL su tablet/iPhone/Android. Nella pagina deve comparire:
+
+```text
+Connesso a Windows
+Metodo: HTTP compatibile.
+```
+
+Poi clicca in una finestra Windows, per esempio Blocco Note, e premi `Test`.
+
+## Avvio solo LAN
+
+Se telefono e PC si raggiungono sulla stessa rete locale:
+
+```text
+start-http-5000.bat
+```
+
+Apri dal telefono:
+
+```text
+http://IP-DEL-PC:5000
+```
+
+Per vedere l'IP corretto, le porte e lo stato firewall:
 
 ```powershell
 .\diagnose-emuk.ps1
 ```
 
-## HTTP, se serve
-
-HTTPS e attivo di default. Per tornare temporaneamente a HTTP:
+Per aprire le porte nel Firewall Windows, da PowerShell come amministratore:
 
 ```powershell
+.\open-firewall.ps1
+```
+
+## HTTPS locale
+
+`start-emuk.bat` avvia HTTPS locale sulla porta `8787` e un fallback HTTP sulla porta `8788`.
+
+```text
+start-emuk.bat
+```
+
+La prima apertura HTTPS richiede di accettare il certificato locale self-signed. Se il browser rifiuta il certificato, usa `start-http-5000.bat` oppure `start-tunnel.bat`.
+
+## Funzioni
+
+- Tastiera touch con lettere, numeri, Tab, funzione, frecce e tasti speciali.
+- Invio testo libero.
+- Scorciatoie rapide: copia, incolla, taglia, annulla, seleziona tutto, Alt Tab, mostra desktop, task manager.
+- Trasporto HTTP predefinito, compatibile con browser mobile e tunnel.
+- WebSocket opzionale aggiungendo `?ws=1` all'URL.
+- Nessuna dipendenza Python esterna per il companion base.
+
+## Requisiti
+
+- Windows.
+- Python 3 disponibile come `py` o `python`.
+- Per la modalita tunnel: accesso internet per scaricare/eseguire `cloudflared`.
+- Per la modalita LAN: telefono e PC devono potersi raggiungere sulla stessa rete.
+
+## Porte
+
+- `5000`: HTTP semplice, usato da `start-http-5000.bat` e `start-tunnel.bat`.
+- `8787`: HTTPS locale, usato da `start-emuk.bat`.
+- `8788`: fallback HTTP locale quando HTTPS e attivo.
+
+Per cambiare porta manualmente:
+
+```powershell
+$env:EMUK_PORT = "9000"
 $env:EMUK_HTTPS = "0"
 python companion.py
 ```
 
-Quando HTTPS e attivo, emuK avvia anche un fallback HTTP sulla porta successiva, di solito `8788`.
+## Troubleshooting
 
-Per un test LAN ancora piu semplice puoi usare `start-http-5000.bat`, poi aprire:
+Se la pagina si apre ma compare `Invio fallito`, aggiorna il repo e riavvia il companion:
 
-```text
-http://IP-DEL-PC:5000/api/info
+```powershell
+git pull
+.\start-tunnel.bat
 ```
 
-## Tunnel se la LAN blocca il telefono
+Se dal telefono la pagina LAN va in timeout:
 
-Se telefono/tablet non raggiungono l'IP locale del PC, usa:
+- prova prima `start-tunnel.bat`;
+- verifica che l'IP del telefono e quello del PC siano nella stessa subnet;
+- controlla che non sia una rete guest o isolata;
+- esegui `open-firewall.ps1` come amministratore.
+
+Se la pagina resta su `WebSocket non disponibile`, ricarica senza WebSocket oppure aggiungi un cache buster:
 
 ```text
-start-tunnel.bat
+https://...trycloudflare.com/?v=3
 ```
 
-Il comando scarica `cloudflared`, avvia emuK su `127.0.0.1:5000` e stampa un URL pubblico temporaneo `https://...trycloudflare.com` da aprire sul telefono.
-
-La web app usa HTTP come trasporto predefinito per massima compatibilita con browser e tunnel. Per forzare WebSocket, aggiungi `?ws=1` all'URL.
+WebSocket non e necessario per l'uso normale.
 
 ## Sicurezza
 
-Usa emuK solo su reti fidate. Chi riesce ad aprire la pagina dal network puo inviare input tastiera al PC mentre il companion e in esecuzione.
+Usa emuK solo in sessioni controllate. Chi riesce ad aprire la pagina mentre il companion e in esecuzione puo inviare input tastiera al PC.
+
+Con `start-tunnel.bat`, l'URL `trycloudflare.com` e pubblico ma temporaneo: chiudi il terminale quando hai finito.
