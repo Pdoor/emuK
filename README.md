@@ -12,14 +12,15 @@ Usa il tunnel se vuoi evitare problemi di firewall, router, isolamento Wi-Fi o c
 
 ```powershell
 cd C:\Users\gmeluzzi\emuk
-.\start-tunnel.bat
+.\start-smart-tunnel.bat
 ```
 
 Il comando:
 
 - scarica `cloudflared` al primo avvio;
 - avvia emuK localmente su `127.0.0.1:5000`;
-- stampa un URL temporaneo `https://...trycloudflare.com`.
+- usa il tunnel Cloudflare stabile `emuk`, se configurato;
+- altrimenti ricade su un URL temporaneo `https://...trycloudflare.com`.
 
 Apri quell'URL su tablet/iPhone/Android. Nella pagina deve comparire:
 
@@ -64,7 +65,7 @@ Per aprire le porte nel Firewall Windows, da PowerShell come amministratore:
 start-emuk.bat
 ```
 
-La prima apertura HTTPS richiede di accettare il certificato locale self-signed. Se il browser rifiuta il certificato, usa `start-http-5000.bat` oppure `start-tunnel.bat`.
+La prima apertura HTTPS richiede di accettare il certificato locale self-signed. Se il browser rifiuta il certificato, usa `start-http-5000.bat` oppure `start-smart-tunnel.bat`.
 
 ## Funzioni
 
@@ -84,7 +85,7 @@ La prima apertura HTTPS richiede di accettare il certificato locale self-signed.
 
 ## Porte
 
-- `5000`: HTTP semplice, usato da `start-http-5000.bat` e `start-tunnel.bat`.
+- `5000`: HTTP semplice, usato da `start-http-5000.bat`, `start-tunnel.bat` e `start-smart-tunnel.bat`.
 - `8787`: HTTPS locale, usato da `start-emuk.bat`.
 - `8788`: fallback HTTP locale quando HTTPS e attivo.
 
@@ -96,18 +97,46 @@ $env:EMUK_HTTPS = "0"
 python companion.py
 ```
 
+## Link stabile Cloudflare
+
+`start-smart-tunnel.bat` funziona a cascata:
+
+1. prova a usare il tunnel nominato Cloudflare `emuk`;
+2. se non trova login/configurazione, usa automaticamente il quick tunnel casuale `trycloudflare.com`.
+
+Per ottenere un URL fisso, configura una tantum un tunnel nominato:
+
+```powershell
+.\tools\cloudflared.exe tunnel login
+.\tools\cloudflared.exe tunnel create emuk
+.\tools\cloudflared.exe tunnel route dns emuk emuk.tuodominio.it
+```
+
+Poi avvia sempre:
+
+```text
+start-smart-tunnel.bat
+```
+
+Se vuoi usare un nome tunnel diverso da `emuk`:
+
+```powershell
+$env:EMUK_TUNNEL_NAME = "nome-tunnel"
+.\start-smart-tunnel.bat
+```
+
 ## Troubleshooting
 
 Se la pagina si apre ma compare `Invio fallito`, aggiorna il repo e riavvia il companion:
 
 ```powershell
 git pull
-.\start-tunnel.bat
+.\start-smart-tunnel.bat
 ```
 
 Se dal telefono la pagina LAN va in timeout:
 
-- prova prima `start-tunnel.bat`;
+- prova prima `start-smart-tunnel.bat`;
 - verifica che l'IP del telefono e quello del PC siano nella stessa subnet;
 - controlla che non sia una rete guest o isolata;
 - esegui `open-firewall.ps1` come amministratore.
@@ -124,4 +153,4 @@ WebSocket non e necessario per l'uso normale.
 
 Usa emuK solo in sessioni controllate. Chi riesce ad aprire la pagina mentre il companion e in esecuzione puo inviare input tastiera al PC.
 
-Con `start-tunnel.bat`, l'URL `trycloudflare.com` e pubblico ma temporaneo: chiudi il terminale quando hai finito.
+Con `start-smart-tunnel.bat`, se viene usato il quick tunnel, l'URL `trycloudflare.com` e pubblico ma temporaneo: chiudi il terminale quando hai finito.
