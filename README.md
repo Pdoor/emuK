@@ -107,10 +107,10 @@ python companion.py
 Per ottenere un URL fisso, configura una tantum un tunnel nominato:
 
 ```powershell
-.\tools\cloudflared.exe tunnel login
-.\tools\cloudflared.exe tunnel create emuk
-.\tools\cloudflared.exe tunnel route dns emuk emuk.tuodominio.it
+.\setup-named-tunnel.bat
 ```
+
+Lo script chiede l'hostname stabile, per esempio `emuk.tuodominio.it`, apre il login Cloudflare, crea il tunnel `emuk` se manca e associa il DNS.
 
 Poi avvia sempre:
 

@@ -63,7 +63,7 @@ if (Test-NamedTunnel $tunnelName) {
     Write-Host "Premi Ctrl+C per chiudere tunnel e server."
     Write-Host ""
     try {
-        & $cloudflared tunnel run $tunnelName
+        & $cloudflared tunnel run --url "http://127.0.0.1:$port" $tunnelName
     } finally {
         Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
     }
