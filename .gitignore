@@ -6,3 +6,4 @@ __pycache__/
 *.log
 certs/
 tools/
+work-cloudflared.log

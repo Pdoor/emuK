@@ -5,6 +5,8 @@ $toolsDir = Join-Path $root "tools"
 $cloudflared = Join-Path $toolsDir "cloudflared.exe"
 $port = if ($env:EMUK_PORT) { $env:EMUK_PORT } else { "5000" }
 $tunnelName = if ($env:EMUK_TUNNEL_NAME) { $env:EMUK_TUNNEL_NAME } else { "emuk" }
+$telegramToken = $env:EMUK_TELEGRAM_BOT_TOKEN
+$telegramChatId = $env:EMUK_TELEGRAM_CHAT_ID
 
 if (!(Test-Path $toolsDir)) {
     New-Item -ItemType Directory -Path $toolsDir | Out-Null
@@ -56,6 +58,64 @@ function Test-NamedTunnel {
     }
 }
 
+function Send-TelegramMessage {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($telegramToken) -or [string]::IsNullOrWhiteSpace($telegramChatId)) {
+        return
+    }
+
+    try {
+        $uri = "https://api.telegram.org/bot$telegramToken/sendMessage"
+        $body = @{
+            chat_id = $telegramChatId
+            text = $Text
+            disable_web_page_preview = $true
+        }
+        Invoke-RestMethod -Method Post -Uri $uri -Body $body | Out-Null
+        Write-Host "Link inviato su Telegram."
+    } catch {
+        Write-Host "Invio Telegram fallito: $($_.Exception.Message)"
+    }
+}
+
+function Start-QuickTunnel {
+    param([string]$LocalUrl)
+
+    $logFile = Join-Path $root "work-cloudflared.log"
+    Remove-Item $logFile -ErrorAction SilentlyContinue
+
+    $process = Start-Process `
+        -FilePath $cloudflared `
+        -ArgumentList "tunnel", "--url", $LocalUrl, "--logfile", $logFile `
+        -WorkingDirectory $root `
+        -PassThru
+
+    $sentUrl = $null
+    try {
+        while (!$process.HasExited) {
+            if (Test-Path $logFile) {
+                $match = Get-Content $logFile -ErrorAction SilentlyContinue |
+                    Select-String -Pattern "https://[-a-z0-9]+\.trycloudflare\.com" |
+                    Select-Object -Last 1
+
+                if ($match -and !$sentUrl) {
+                    $sentUrl = $match.Matches.Value
+                    Write-Host ""
+                    Write-Host "URL tunnel: $sentUrl"
+                    Send-TelegramMessage "emuK: $sentUrl"
+                }
+            }
+            Start-Sleep -Seconds 1
+            $process.Refresh()
+        }
+    } finally {
+        if (!$process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 Write-Host ""
 if (Test-NamedTunnel $tunnelName) {
     Write-Host "Tunnel Cloudflare nominato trovato: $tunnelName"
@@ -63,6 +123,9 @@ if (Test-NamedTunnel $tunnelName) {
     Write-Host "Premi Ctrl+C per chiudere tunnel e server."
     Write-Host ""
     try {
+        if ($env:EMUK_PUBLIC_URL) {
+            Send-TelegramMessage "emuK: $env:EMUK_PUBLIC_URL"
+        }
         & $cloudflared tunnel run --url "http://127.0.0.1:$port" $tunnelName
     } finally {
         Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
@@ -74,7 +137,7 @@ if (Test-NamedTunnel $tunnelName) {
     Write-Host "Premi Ctrl+C per chiudere tunnel e server."
     Write-Host ""
     try {
-        & $cloudflared tunnel --url "http://127.0.0.1:$port"
+        Start-QuickTunnel "http://127.0.0.1:$port"
     } finally {
         Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
     }

@@ -125,6 +125,32 @@ $env:EMUK_TUNNEL_NAME = "nome-tunnel"
 .\start-smart-tunnel.bat
 ```
 
+## Invio link su Telegram
+
+Puoi far inviare automaticamente il link generato a una chat Telegram.
+
+1. Crea un bot con `@BotFather` e copia il token.
+2. Scrivi almeno un messaggio al tuo bot.
+3. Recupera il tuo chat id aprendo nel browser:
+
+```text
+https://api.telegram.org/botTOKEN_DEL_BOT/getUpdates
+```
+
+4. Avvia emuK impostando token e chat id:
+
+```powershell
+$env:EMUK_TELEGRAM_BOT_TOKEN = "TOKEN_DEL_BOT"
+$env:EMUK_TELEGRAM_CHAT_ID = "CHAT_ID"
+.\start-smart-tunnel.bat
+```
+
+Quando viene creato un quick tunnel `trycloudflare.com`, emuK invia il link alla chat Telegram. Se usi un tunnel stabile e vuoi inviare comunque l'URL, imposta anche:
+
+```powershell
+$env:EMUK_PUBLIC_URL = "https://emuk.tuodominio.it"
+```
+
 ## Troubleshooting
 
 Se la pagina si apre ma compare `Invio fallito`, aggiorna il repo e riavvia il companion:
